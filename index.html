@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bible Commentary Comparison</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #faf6ef;
+      color: #1a1208;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: #1c1409;
+      color: #f0e6d3;
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .site-header h1 {
+      font-size: 1.1rem;
+      font-weight: normal;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #d4a96a;
+      margin-bottom: 0.65rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      color: #b89060;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    select, input[type="number"] {
+      padding: 0.38rem 0.5rem;
+      background: #2a1c08;
+      border: 1px solid #5a3e18;
+      border-radius: 3px;
+      color: #f0e6d3;
+      font-family: Georgia, serif;
+      font-size: 0.88rem;
+    }
+
+    select:focus, input:focus { outline: 1px solid #d4a96a; }
+
+    #book-select { min-width: 175px; }
+    .num-input   { width: 60px; text-align: center; }
+
+    .btn {
+      padding: 0.38rem 1.1rem;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      font-size: 0.88rem;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: #8b5e18;
+      color: #f0e6d3;
+      letter-spacing: 0.04em;
+    }
+    .btn-primary:hover    { background: #a87020; }
+    .btn-primary:disabled { background: #3a2a10; color: #6a5030; cursor: default; }
+
+    .btn-nav {
+      background: #2a1c08;
+      color: #c8a060;
+      border: 1px solid #5a3e18;
+    }
+    .btn-nav:hover    { background: #3a2a10; }
+    .btn-nav:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Verse bar ── */
+    .verse-bar {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      background: #ede3cf;
+      border-bottom: 1px solid #c8a870;
+      padding: 0.45rem 1.5rem;
+      font-size: 0.83rem;
+      color: #5a3e18;
+    }
+    .verse-bar.visible { display: flex; }
+    .verse-bar .ref    { font-weight: bold; font-size: 0.97rem; color: #1c1409; }
+    .verse-bar a       { margin-left: auto; color: #7a4e10; font-size: 0.78rem; text-decoration: none; }
+    .verse-bar a:hover { text-decoration: underline; }
+
+    /* ── Commentary grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      flex: 1;
+      align-items: start;
+    }
+
+    .column {
+      border-right: 1px solid #ddd0b0;
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 115px);
+    }
+    .column:last-child { border-right: none; }
+
+    .col-header {
+      background: #ede3cf;
+      border-bottom: 2px solid #c8a060;
+      padding: 0.7rem 1rem;
+      position: sticky;
+      top: 96px;
+      z-index: 10;
+    }
+
+    .col-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #1c1409;
+    }
+
+    .col-subtitle {
+      font-size: 0.72rem;
+      color: #7a5828;
+      margin-top: 0.1rem;
+    }
+
+    .col-body {
+      padding: 1.2rem 1.1rem;
+      flex: 1;
+      font-size: 0.88rem;
+      line-height: 1.9;
+      overflow-wrap: break-word;
+    }
+
+    .col-body p {
+      margin-bottom: 0.85rem;
+      text-align: justify;
+    }
+    .col-body p:last-child { margin-bottom: 0; }
+
+    /* States */
+    .placeholder, .not-found {
+      color: #9a7848;
+      font-style: italic;
+      text-align: center;
+      padding: 2.5rem 1rem;
+      line-height: 1.8;
+    }
+
+    .loading {
+      text-align: center;
+      color: #8b5e18;
+      padding: 2.5rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #c8a060;
+      border-top-color: #8b5e18;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #fff5f0;
+      border: 1px solid #d08060;
+      border-radius: 4px;
+      padding: 1rem;
+      color: #7b2000;
+      margin: 1rem;
+      font-size: 0.83rem;
+      line-height: 1.7;
+    }
+    .error-box a { color: #8b3010; }
+
+    /* ── Footer ── */
+    footer {
+      background: #1c1409;
+      color: #6a5030;
+      text-align: center;
+      padding: 0.55rem;
+      font-size: 0.72rem;
+    }
+    footer a { color: #9a7040; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .column { border-right: none; border-bottom: 1px solid #ddd0b0; min-height: auto; }
+      .col-header { top: 0; position: static; }
+    }
+
+    /* ── Q&A Panel ── */
+    #qa-panel {
+      background: #faf6ef;
+      border-top: 2px solid #c8a060;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #qa-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #ede3cf;
+      border-bottom: 1px solid #c8a870;
+      padding: 0.6rem 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    #qa-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #1c1409;
+      letter-spacing: 0.03em;
+    }
+
+    #session-badge {
+      font-size: 0.75rem;
+      background: #8b5e18;
+      color: #f0e6d3;
+      padding: 0.18rem 0.6rem;
+      border-radius: 10px;
+    }
+
+    #session-badge.empty { background: #6a5030; }
+
+    #clear-btn {
+      margin-left: auto;
+      padding: 0.25rem 0.7rem;
+      background: transparent;
+      border: 1px solid #c8a060;
+      border-radius: 3px;
+      color: #7a5020;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: Georgia, serif;
+    }
+    #clear-btn:hover { background: #ede3cf; }
+
+    #qa-history {
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    #qa-history:empty::after {
+      content: 'Ask a question above — answers will appear here.';
+      color: #a08860;
+      font-style: italic;
+      font-size: 0.83rem;
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    #qa-verse-label {
+      font-size: 0.78rem;
+      color: #7a4e10;
+      font-style: italic;
+      padding: 4px 1.25rem 0;
+      display: none;
+    }
+
+    .qa-separator {
+      text-align: center;
+      font-size: 0.76rem;
+      color: #9a7848;
+      font-style: italic;
+      border-top: 1px solid #d8c898;
+      padding-top: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .qa-q, .qa-a {
+      max-width: 78%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.87rem;
+      line-height: 1.7;
+    }
+
+    .qa-q {
+      align-self: flex-end;
+      background: #8b5e18;
+      color: #f0e6d3;
+    }
+
+    .qa-a {
+      align-self: flex-start;
+      background: #ede3cf;
+      color: #1c1409;
+      border-left: 3px solid #c8a060;
+    }
+
+    .qa-error {
+      align-self: flex-start;
+      background: #fff0f0;
+      color: #7b2000;
+      border-left: 3px solid #d08060;
+      font-style: italic;
+      font-size: 0.83rem;
+      max-width: 90%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+    }
+
+    .qa-thinking {
+      align-self: flex-start;
+      color: #8b5e18;
+      font-size: 0.82rem;
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    #qa-input-row {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid #ddd0b0;
+      align-items: flex-end;
+    }
+
+    #qa-input {
+      flex: 1;
+      padding: 0.5rem 0.7rem;
+      border: 1px solid #c8a060;
+      border-radius: 4px;
+      background: #fff;
+      color: #1c1409;
+      font-family: Georgia, serif;
+      font-size: 0.88rem;
+      resize: vertical;
+      min-height: 2.5rem;
+    }
+    #qa-input:focus { outline: 1px solid #8b5e18; }
+
+    #qa-submit {
+      padding: 0.5rem 1.3rem;
+      background: #8b5e18;
+      color: #f0e6d3;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    #qa-submit:hover    { background: #a87020; }
+    #qa-submit:disabled { background: #3a2a10; color: #6a5030; cursor: default; }
+
+    #qa-hint {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #9a7848;
+      font-style: italic;
+      padding: 0 1.25rem 0.6rem;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Bible Commentary Comparison</h1>
+  <div class="controls">
+    <label for="book-select">Book</label>
+    <select id="book-select"></select>
+
+    <label for="ch-input">Ch.</label>
+    <input id="ch-input" class="num-input" type="number" min="1" max="150" value="1">
+
+    <label for="vs-input">Vs.</label>
+    <input id="vs-input" class="num-input" type="number" min="1" max="176" value="1">
+
+    <button class="btn btn-primary" id="compare-btn" onclick="compare()">Compare</button>
+    <button class="btn btn-nav" id="prev-btn" onclick="navigate(-1)" disabled title="Previous verse">&#8592; Prev</button>
+    <button class="btn btn-nav" id="next-btn" onclick="navigate(1)"  disabled title="Next verse">Next &#8594;</button>
+  </div>
+</header>
+
+<div class="verse-bar" id="verse-bar">
+  <span class="ref" id="verse-ref"></span>
+  <a id="bh-link" href="#" target="_blank" rel="noopener">View on BibleHub ↗</a>
+</div>
+
+<div class="grid">
+  <div class="column">
+    <div class="col-header">
+      <div class="col-title">Matthew Henry</div>
+      <div class="col-subtitle">Complete Commentary · 1706–1714</div>
+    </div>
+    <div class="col-body" id="mhc-body">
+      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
+    </div>
+  </div>
+
+  <div class="column">
+    <div class="col-header">
+      <div class="col-title">Gill's Exposition</div>
+      <div class="col-subtitle">Exposition of the Entire Bible · 1746–1766</div>
+    </div>
+    <div class="col-body" id="gill-body">
+      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
+    </div>
+  </div>
+
+  <div class="column">
+    <div class="col-header">
+      <div class="col-title">Calvin's Commentaries</div>
+      <div class="col-subtitle">Commentaries · 1540s–1560s</div>
+    </div>
+    <div class="col-body" id="calvin-body">
+      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
+    </div>
+  </div>
+</div>
+
+<div id="qa-panel">
+  <div id="qa-header">
+    <span id="qa-title">Ask the Commentaries</span>
+    <span id="session-badge" class="empty">0 verses loaded</span>
+    <button id="clear-btn" onclick="clearSession()">Clear session</button>
+  </div>
+  <div id="qa-verse-label"></div>
+  <div id="qa-history"></div>
+  <div id="qa-input-row">
+    <textarea id="qa-input" rows="2"
+      placeholder="Ask a question about the loaded commentaries… (Shift+Enter for new line, Enter to submit)"
+    ></textarea>
+    <button id="qa-submit" onclick="askQuestion()">Ask</button>
+  </div>
+  <div id="qa-hint">Load at least one verse above, then ask a question.</div>
+</div>
+
+<footer>
+  Commentary text sourced from <a href="https://biblehub.com" target="_blank" rel="noopener">BibleHub.com</a>
+  &nbsp;·&nbsp; All three commentaries are in the public domain
+</footer>
+
+<script>
+/* ── Book list ── */
+const BOOKS = [
+  { n:'Genesis',         s:'genesis',        c:50  }, { n:'Exodus',          s:'exodus',         c:40  },
+  { n:'Leviticus',       s:'leviticus',      c:27  }, { n:'Numbers',         s:'numbers',        c:36  },
+  { n:'Deuteronomy',     s:'deuteronomy',    c:34  }, { n:'Joshua',          s:'joshua',         c:24  },
+  { n:'Judges',          s:'judges',         c:21  }, { n:'Ruth',            s:'ruth',           c:4   },
+  { n:'1 Samuel',        s:'1samuel',        c:31  }, { n:'2 Samuel',        s:'2samuel',        c:24  },
+  { n:'1 Kings',         s:'1kings',         c:22  }, { n:'2 Kings',         s:'2kings',         c:25  },
+  { n:'1 Chronicles',    s:'1chronicles',    c:29  }, { n:'2 Chronicles',    s:'2chronicles',    c:36  },
+  { n:'Ezra',            s:'ezra',           c:10  }, { n:'Nehemiah',        s:'nehemiah',       c:13  },
+  { n:'Esther',          s:'esther',         c:10  }, { n:'Job',             s:'job',            c:42  },
+  { n:'Psalms',          s:'psalms',         c:150 }, { n:'Proverbs',        s:'proverbs',       c:31  },
+  { n:'Ecclesiastes',    s:'ecclesiastes',   c:12  }, { n:'Song of Solomon', s:'songofsolomon',  c:8   },
+  { n:'Isaiah',          s:'isaiah',         c:66  }, { n:'Jeremiah',        s:'jeremiah',       c:52  },
+  { n:'Lamentations',    s:'lamentations',   c:5   }, { n:'Ezekiel',         s:'ezekiel',        c:48  },
+  { n:'Daniel',          s:'daniel',         c:12  }, { n:'Hosea',           s:'hosea',          c:14  },
+  { n:'Joel',            s:'joel',           c:3   }, { n:'Amos',            s:'amos',           c:9   },
+  { n:'Obadiah',         s:'obadiah',        c:1   }, { n:'Jonah',           s:'jonah',          c:4   },
+  { n:'Micah',           s:'micah',          c:7   }, { n:'Nahum',           s:'nahum',          c:3   },
+  { n:'Habakkuk',        s:'habakkuk',       c:3   }, { n:'Zephaniah',       s:'zephaniah',      c:3   },
+  { n:'Haggai',          s:'haggai',         c:2   }, { n:'Zechariah',       s:'zechariah',      c:14  },
+  { n:'Malachi',         s:'malachi',        c:4   }, { n:'Matthew',         s:'matthew',        c:28  },
+  { n:'Mark',            s:'mark',           c:16  }, { n:'Luke',            s:'luke',           c:24  },
+  { n:'John',            s:'john',           c:21  }, { n:'Acts',            s:'acts',           c:28  },
+  { n:'Romans',          s:'romans',         c:16  }, { n:'1 Corinthians',   s:'1corinthians',   c:16  },
+  { n:'2 Corinthians',   s:'2corinthians',   c:13  }, { n:'Galatians',       s:'galatians',      c:6   },
+  { n:'Ephesians',       s:'ephesians',      c:6   }, { n:'Philippians',     s:'philippians',    c:4   },
+  { n:'Colossians',      s:'colossians',     c:4   }, { n:'1 Thessalonians', s:'1thessalonians', c:5   },
+  { n:'2 Thessalonians', s:'2thessalonians', c:3   }, { n:'1 Timothy',       s:'1timothy',       c:6   },
+  { n:'2 Timothy',       s:'2timothy',       c:4   }, { n:'Titus',           s:'titus',          c:3   },
+  { n:'Philemon',        s:'philemon',       c:1   }, { n:'Hebrews',         s:'hebrews',        c:13  },
+  { n:'James',           s:'james',          c:5   }, { n:'1 Peter',         s:'1peter',         c:5   },
+  { n:'2 Peter',         s:'2peter',         c:3   }, { n:'1 John',          s:'1john',          c:5   },
+  { n:'2 John',          s:'2john',          c:1   }, { n:'3 John',          s:'3john',          c:1   },
+  { n:'Jude',            s:'jude',           c:1   }, { n:'Revelation',      s:'revelation',     c:22  },
+];
+
+/* ── Populate dropdown ── */
+const bookSel = document.getElementById('book-select');
+BOOKS.forEach((b, i) => {
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = b.n;
+  bookSel.appendChild(o);
+});
+
+/* ── State ── */
+let current = null; // { bi, ch, vs }
+
+/* ── Keyboard nav ── */
+document.getElementById('ch-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('vs-input').focus();
+});
+document.getElementById('vs-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') compare();
+});
+
+/* ── Navigate prev/next verse ── */
+function navigate(delta) {
+  if (!current) return;
+  let { bi, ch, vs } = current;
+  vs += delta;
+
+  if (vs < 1) {
+    ch -= 1;
+    if (ch < 1) { bi -= 1; if (bi < 0) return; ch = BOOKS[bi].c; }
+    vs = 176; // will show whatever exists
+  }
+  if (ch > BOOKS[bi].c) {
+    bi += 1;
+    if (bi >= BOOKS.length) return;
+    ch = 1; vs = 1;
+  }
+
+  bookSel.value = bi;
+  document.getElementById('ch-input').value = ch;
+  document.getElementById('vs-input').value = vs;
+  compare();
+}
+
+/* ── Main compare ── */
+async function compare() {
+  const bi = parseInt(bookSel.value);
+  const ch = parseInt(document.getElementById('ch-input').value);
+  const vs = parseInt(document.getElementById('vs-input').value);
+
+  if (isNaN(bi) || isNaN(ch) || isNaN(vs) || ch < 1 || vs < 1) return;
+
+  const book = BOOKS[bi];
+  current = { bi, ch, vs };
+
+  const btn = document.getElementById('compare-btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  document.getElementById('prev-btn').disabled = true;
+  document.getElementById('next-btn').disabled = true;
+
+  const ref    = `${book.n} ${ch}:${vs}`;
+  const bhUrl  = `https://biblehub.com/commentaries/${book.s}/${ch}-${vs}.htm`;
+
+  document.getElementById('verse-ref').textContent = ref;
+  document.getElementById('bh-link').href = bhUrl;
+  document.getElementById('verse-bar').classList.add('visible');
+
+  showLoading();
+
+  const calvinUrl = `https://biblehub.com/commentaries/calvin/${book.s}/${ch}.htm`;
+
+  try {
+    // Fetch verse page (MHC + Gill) and Calvin's chapter page in parallel
+    const [verseResult, calvinResult] = await Promise.allSettled([
+      fetchViaProxy(bhUrl),
+      fetchViaProxy(calvinUrl),
+    ]);
+
+    const verseDoc = verseResult.status === 'fulfilled'
+      ? new DOMParser().parseFromString(verseResult.value, 'text/html')
+      : null;
+    const calvinDoc = calvinResult.status === 'fulfilled'
+      ? new DOMParser().parseFromString(calvinResult.value, 'text/html')
+      : null;
+
+    if (!verseDoc) throw new Error(verseResult.reason?.message || 'Failed to load verse page');
+
+    render('mhc-body',    extract(verseDoc, ['matthew henry', "henry's concise"]), ref, bhUrl);
+    render('gill-body',   extract(verseDoc, ["gill's exposition", 'gill']),        ref, bhUrl);
+    render('calvin-body', calvinDoc ? extractCalvin(calvinDoc, ch, vs) : null,     ref, calvinUrl);
+
+    // Insert verse-change separator in Q&A history if navigating away from another verse
+    if (currentRef && currentRef !== ref) {
+      const history = document.getElementById('qa-history');
+      if (history.children.length > 0) {
+        const sep = document.createElement('div');
+        sep.className = 'qa-separator';
+        sep.textContent = `↓  Switched to ${ref}`;
+        history.appendChild(sep);
+        history.scrollTop = history.scrollHeight;
+      }
+    }
+
+    // Store plain-text commentary in the session store for RAG
+    currentRef = ref;
+    sessionStore.set(ref, {
+      mhc:    document.getElementById('mhc-body').textContent.trim(),
+      gill:   document.getElementById('gill-body').textContent.trim(),
+      calvin: document.getElementById('calvin-body').textContent.trim(),
+    });
+    updateSessionBadge();
+
+  } catch (err) {
+    const isAbort = err.name === 'AbortError';
+    const msg = isAbort ? 'Request timed out. Please try again.' : err.message;
+    const errHtml = `
+      <div class="error-box">
+        <strong>Could not load commentary</strong><br><br>
+        ${esc(msg)}<br><br>
+        The CORS proxy may be temporarily unavailable.
+        <a href="${esc(bhUrl)}" target="_blank" rel="noopener">Open ${esc(ref)} on BibleHub directly ↗</a>
+      </div>`;
+    ['mhc-body','gill-body','calvin-body'].forEach(id => {
+      document.getElementById(id).innerHTML = errHtml;
+    });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Compare';
+    document.getElementById('prev-btn').disabled = false;
+    document.getElementById('next-btn').disabled = false;
+  }
+}
+
+/* ── CORS proxy fallback chain ── */
+const ON_LOCALHOST = ['localhost', '127.0.0.1'].includes(location.hostname);
+
+const PROXIES = ON_LOCALHOST
+  ? [
+      {
+        name: 'local',
+        build: u => `/fetch?url=${encodeURIComponent(u)}`,
+        read:  async r => r.text()
+      }
+    ]
+  : [
+      {
+        name: 'allorigins',
+        build: u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}&t=${Date.now()}`,
+        read:  async r => { const d = await r.json(); return d.contents || ''; }
+      },
+      {
+        name: 'corsproxy.io',
+        build: u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        read:  async r => r.text()
+      },
+      {
+        name: 'codetabs',
+        build: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+        read:  async r => r.text()
+      },
+    ];
+
+async function fetchViaProxy(targetUrl) {
+  let lastError = null;
+  for (const proxy of PROXIES) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      const resp = await fetch(proxy.build(targetUrl), { signal: controller.signal });
+      clearTimeout(timer);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await proxy.read(resp);
+      if (html && html.trim().length > 200) return html;
+      throw new Error('Empty or too-short response');
+    } catch (e) {
+      lastError = e;
+      // try next proxy
+    }
+  }
+  throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
+}
+
+function showLoading() {
+  const html = '<div class="loading"><span class="spinner"></span>Loading…</div>';
+  ['mhc-body','gill-body','calvin-body'].forEach(id => {
+    document.getElementById(id).innerHTML = html;
+  });
+}
+
+function render(id, html, ref, bhUrl) {
+  const el = document.getElementById(id);
+  if (html && html.trim().length > 80) {
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = `
+      <div class="not-found">
+        No commentary found for <strong>${esc(ref)}</strong>.<br>
+        This source may not cover this specific verse, or the verse grouping may differ.<br><br>
+        <a href="${esc(bhUrl)}" target="_blank" rel="noopener" style="color:#7a4e10;font-size:0.82rem;">
+          View on BibleHub ↗
+        </a>
+      </div>`;
+  }
+}
+
+/* ── Commentary extraction (verse page: MHC + Gill) ── */
+/*
+ * BibleHub structure on /commentaries/{book}/{ch}-{vs}.htm:
+ *   <a name="mhc" id="mhc"></a>
+ *   <div class="vheading2"><a href="...">Matthew Henry's Concise Commentary</a></div>
+ *   text node with commentary...
+ *   <span class="p"><br/><br/></span>   ← paragraph separator
+ *   more text...
+ *   <a name="bar" id="bar"></a>         ← next section starts
+ */
+function extract(doc, keywords) {
+  /* Find the vheading2 div whose text matches a keyword */
+  let heading = null;
+  for (const div of doc.querySelectorAll('div.vheading2')) {
+    const t = div.textContent.toLowerCase();
+    if (keywords.some(kw => t.includes(kw.toLowerCase()))) { heading = div; break; }
+  }
+  if (!heading) return null;
+
+  const parent = heading.parentNode;
+  const nodes  = Array.from(parent.childNodes);
+  const start  = nodes.indexOf(heading) + 1;
+
+  const chunks = [];
+  let   buf    = [];
+
+  for (let i = start; i < nodes.length; i++) {
+    const node = nodes[i];
+
+    if (node.nodeType === 1) { // Element
+      /* Stop at the next section heading */
+      if (node.classList && node.classList.contains('vheading2')) break;
+      /* Stop at a section anchor — short lowercase id like 'bar', 'jfb', 'pul' */
+      if (node.tagName === 'A') {
+        const nm = node.getAttribute('name') || node.getAttribute('id') || '';
+        if (nm && nm.length <= 5 && /^[a-z]+$/.test(nm)) break;
+      }
+      if (['SCRIPT','STYLE','NAV'].includes(node.tagName)) continue;
+      /* <span class="p"> is BibleHub's paragraph break */
+      if (node.tagName === 'SPAN' && node.className === 'p') {
+        const t = buf.join('').trim();
+        if (t) { chunks.push(t); buf = []; }
+        continue;
+      }
+      buf.push(node.textContent || '');
+    } else if (node.nodeType === 3) { // Text node
+      buf.push(node.textContent);
+    }
+  }
+
+  const tail = buf.join('').trim();
+  if (tail) chunks.push(tail);
+
+  return chunks
+    .map(s => s.replace(/\s+/g, ' ').trim())
+    .filter(s => s.length > 30)
+    .map(s => `<p>${esc(s)}</p>`)
+    .join('\n');
+}
+
+/* ── Calvin extraction (chapter page: /commentaries/calvin/{book}/{ch}.htm) ── */
+/*
+ * BibleHub Calvin chapter page structure:
+ *   <div class="chap">
+ *     <div class="versenum"><a href="/{book}/{ch}-{vs}.htm">...</a></div>
+ *     <div class="verse">Bible text</div>
+ *     <div class="comm"><p>commentary...</p></div>
+ *   </div>
+ *
+ * Calvin groups verses (e.g. 1:1-17), so we find the chap whose versenum
+ * link matches our verse, or the nearest preceding one.
+ */
+function extractCalvin(doc, ch, vs) {
+  /* Pair each div.versenum with the div.comm that follows it, then pick the
+   * pair with the largest verse number <= our verse that has real content.
+   * (Some chapters attach the ENTIRE chapter commentary to verse 1 and leave
+   * the other verses' comm divs empty.) */
+  const versenums = Array.from(doc.querySelectorAll('div.versenum'));
+  let match = null;
+  for (const vn of versenums) {
+    const a = vn.querySelector('a');
+    const href = a ? (a.getAttribute('href') || '') : '';
+    const m = href.match(/-(\d+)\.htm$/);
+    if (!m) continue;
+    const verse = parseInt(m[1], 10);
+    if (verse > vs) break;
+    /* Find the next div.comm sibling after this versenum */
+    let sib = vn.nextElementSibling;
+    while (sib && !(sib.classList && sib.classList.contains('comm'))) {
+      if (sib.classList && sib.classList.contains('versenum')) { sib = null; break; }
+      sib = sib.nextElementSibling;
+    }
+    if (sib && sib.textContent.trim().length > 40) match = sib;
+  }
+  if (!match) return null;
+
+  /* Collect paragraph texts in order */
+  let paras = Array.from(match.querySelectorAll('p'))
+    .map(p => p.textContent.trim().replace(/\s+/g, ' '));
+  if (paras.length === 0) {
+    const t = match.textContent.trim().replace(/\s+/g, ' ');
+    return t.length > 40 ? `<p>${esc(t)}</p>` : null;
+  }
+
+  /* Whole-chapter blobs start with a bilingual verse listing (1,1,2,2,…31,31)
+   * and then Calvin's exposition sections, whose numbering RESTARTS ("1. In
+   * the beginning. To expound…"). Detect that restart and slice out only the
+   * section covering our verse. */
+  const numOf = t => { const m = t.match(/^(\d{1,3})[.\s]/); return m ? parseInt(m[1], 10) : null; };
+  let expoStart = -1, prev = -1;
+  for (let i = 0; i < paras.length; i++) {
+    const n = numOf(paras[i]);
+    if (n === null) continue;
+    if (prev !== -1 && n < prev) { expoStart = i; break; }
+    prev = n;
+  }
+
+  if (expoStart !== -1) {
+    /* Numbered exposition sections from expoStart onward */
+    const sections = [];
+    for (let i = expoStart; i < paras.length; i++) {
+      const n = numOf(paras[i]);
+      if (n !== null) sections.push({ n, i });
+    }
+    /* Pick the section with the largest number <= vs (Calvin groups verses) */
+    let chosen = sections[0];
+    for (const s of sections) if (s.n <= vs) chosen = s;
+    const next = sections.find(s => s.i > chosen.i && s.n !== chosen.n);
+    const end  = next ? next.i : paras.length;
+    paras = paras.slice(chosen.i, end)
+      .filter(t => !/^\[\d+\]/.test(t)); // drop footnote paragraphs
+  }
+
+  const parts = paras
+    .filter(t => t.length > 40)
+    .map(t => `<p>${esc(t)}</p>`);
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+/* ── Session store (RAG context) ── */
+const sessionStore = new Map(); // key: "Matthew 1:1", value: { mhc, gill, calvin }
+let currentRef = null;
+
+function updateSessionBadge() {
+  const n = sessionStore.size;
+  const badge = document.getElementById('session-badge');
+  badge.textContent = `${n} verse${n !== 1 ? 's' : ''} loaded`;
+  badge.classList.toggle('empty', n === 0);
+  const label = document.getElementById('qa-verse-label');
+  if (currentRef) {
+    label.textContent = `Context: ${currentRef}`;
+    label.style.display = 'block';
+  } else {
+    label.style.display = 'none';
+  }
+}
+
+function clearSession() {
+  sessionStore.clear();
+  updateSessionBadge();
+  document.getElementById('qa-history').innerHTML = '';
+}
+
+function buildContext() {
+  if (!currentRef || !sessionStore.has(currentRef)) return '';
+  const texts = sessionStore.get(currentRef);
+  let ctx = `=== ${currentRef} ===\n`;
+  if (texts.mhc    && !texts.mhc.includes('No commentary found'))    ctx += `\n[Matthew Henry]\n${texts.mhc}\n`;
+  if (texts.gill   && !texts.gill.includes('No commentary found'))   ctx += `\n[Gill's Exposition]\n${texts.gill}\n`;
+  if (texts.calvin && !texts.calvin.includes('No commentary found')) ctx += `\n[Calvin's Commentaries]\n${texts.calvin}\n`;
+  return ctx.trim();
+}
+
+/* ── Q&A ── */
+async function askQuestion() {
+  const input  = document.getElementById('qa-input');
+  const submit = document.getElementById('qa-submit');
+  const history = document.getElementById('qa-history');
+  const question = input.value.trim();
+
+  if (!question) return;
+
+  if (!currentRef) {
+    appendBubble(history, 'qa-error', 'Please load a verse before asking a question.');
+    return;
+  }
+
+  const context = buildContext();
+  if (!context) {
+    appendBubble(history, 'qa-error', 'No commentary text is available for the current verse.');
+    return;
+  }
+
+  // Show question bubble
+  appendBubble(history, 'qa-q', question);
+  input.value = '';
+
+  // Show thinking indicator
+  const thinking = document.createElement('div');
+  thinking.className = 'qa-thinking';
+  thinking.innerHTML = '<span class="spinner"></span> Thinking…';
+  history.appendChild(thinking);
+  history.scrollTop = history.scrollHeight;
+
+  submit.disabled = true;
+
+  try {
+    const resp = await fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, context }),
+    });
+
+    const data = await resp.json();
+    thinking.remove();
+
+    if (data.error) {
+      appendBubble(history, 'qa-error', data.error);
+    } else {
+      appendBubble(history, 'qa-a', data.answer);
+      // Fire-and-forget log (silent on failure)
+      fetch('/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          answer:  data.answer,
+          verses:  [currentRef],
+          context_chars: context.length,
+        }),
+      }).catch(() => {});
+    }
+  } catch (err) {
+    thinking.remove();
+    appendBubble(history, 'qa-error',
+      `Could not reach the proxy server. Is python3 proxy.py running? (${err.message})`
+    );
+  } finally {
+    submit.disabled = false;
+    history.scrollTop = history.scrollHeight;
+  }
+}
+
+function appendBubble(container, cls, text) {
+  const div = document.createElement('div');
+  div.className = cls;
+  // Preserve line breaks from the model response
+  div.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, '$1').replace(/\n/g, '<br>');
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+/* Enter to submit, Shift+Enter for newline */
+document.getElementById('qa-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion(); }
+});
+
+/* ── Ollama availability check ── */
+let ollamaOK = null; // null = unknown, true/false after /status
+
+async function checkOllama() {
+  const hint = document.getElementById('qa-hint');
+  const input = document.getElementById('qa-input');
+  const submit = document.getElementById('qa-submit');
+  try {
+    const resp = await fetch('/status');
+    const s = await resp.json();
+    if (!s.ollama) {
+      ollamaOK = false;
+      hint.innerHTML = 'Q&amp;A requires Ollama (free, local AI). Install it from ' +
+        '<a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>, ' +
+        'then run: <code>ollama pull ' + esc(s.model) + '</code> &nbsp;— commentary comparison works without it.';
+      input.disabled = true;
+      submit.disabled = true;
+    } else if (!s.models.includes(s.model)) {
+      ollamaOK = false;
+      hint.innerHTML = 'Ollama is running but the model <code>' + esc(s.model) + '</code> is not installed. ' +
+        'Run: <code>ollama pull ' + esc(s.model) + '</code>';
+      input.disabled = true;
+      submit.disabled = true;
+    } else {
+      ollamaOK = true;
+      hint.textContent = 'Load at least one verse above, then ask a question.';
+      input.disabled = false;
+      submit.disabled = false;
+    }
+  } catch (e) {
+    ollamaOK = null; // proxy unreachable; leave the panel as-is
+  }
+  return ollamaOK;
+}
+
+/* Re-check periodically while unavailable (user may start Ollama after launch) */
+setInterval(() => { if (ollamaOK === false) checkOllama(); }, 10000);
+
+checkOllama();
+</script>
+</body>
+</html>

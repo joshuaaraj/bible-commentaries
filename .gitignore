@@ -1,0 +1,11 @@
+# Build artifacts
+dist/
+build/
+*.spec
+__pycache__/
+
+# Personal Q&A history
+logs/
+
+# Local tool settings
+.claude/
