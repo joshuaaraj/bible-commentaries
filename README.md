@@ -11,16 +11,24 @@ Commentary text is fetched from [BibleHub.com](https://biblehub.com). Q&A uses
 
 There are three ways to run the app, from easiest to most hands-on.
 
-### Option 1 — Download the app (Windows, no install)
+### Option 1 — Download the app (no install)
 
-1. Go to the [latest release](https://github.com/joshuaaraj/bible-commentaries/releases/latest)
-   and download `BibleCommentaries.exe`.
-2. Double-click it. Windows SmartScreen may warn about an unrecognized app the first
+Go to the [latest release](https://github.com/joshuaaraj/bible-commentaries/releases/latest) and download the file for your OS:
+
+**Windows** — `BibleCommentaries.exe`
+1. Double-click it. Windows SmartScreen may warn about an unrecognized app the first
    time — click **More info → Run anyway** (the exe is unsigned, not malicious).
-3. The app opens in its own window. Pick a book, chapter, and verse, then click
-   **Compare**.
+2. Requires Windows 10/11 (the WebView2 runtime it uses is preinstalled there).
 
-Requires Windows 10/11 (the WebView2 runtime it uses is preinstalled there).
+**Linux** — `bible-commentaries-linux`
+```bash
+chmod +x bible-commentaries-linux
+./bible-commentaries-linux
+```
+Needs WebKitGTK, which most desktop distros already have
+(`sudo apt install python3-gi gir1.2-webkit2-4.1` if not).
+
+The app opens in its own window. Pick a book, chapter, and verse, then click **Compare**.
 
 ### Option 2 — Run from source in your browser (Linux/Windows/macOS)
 
