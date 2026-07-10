@@ -31,21 +31,26 @@ jobs:
           path: dist/BibleCommentaries.exe
 
   linux:
-    # Oldest supported base: PyInstaller binaries only run on glibc >= the build
-    # machine's, so building on the oldest runner maximizes compatibility
-    runs-on: ubuntu-22.04
+    # PyInstaller binaries only run on glibc >= the build machine's, so build in an
+    # ubuntu:20.04 container (glibc 2.31) to support older distros. GitHub retired
+    # the ubuntu-20.04 runner, hence the container.
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
     steps:
-      - uses: actions/checkout@v4
-
       - name: Install system dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-webkit2-4.1
+          apt-get update
+          apt-get install -y git python3 python3-venv python3-pip python3-gi gir1.2-webkit2-4.0 binutils
+
+      - uses: actions/checkout@v4
 
       - name: Install Python dependencies
         # venv with system site packages so PyInstaller can bundle the apt-installed GTK bindings
         run: |
           python3 -m venv --system-site-packages venv
+          venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt pyinstaller
 
       - name: Build binary
