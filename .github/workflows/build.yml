@@ -31,7 +31,9 @@ jobs:
           path: dist/BibleCommentaries.exe
 
   linux:
-    runs-on: ubuntu-latest
+    # Oldest supported base: PyInstaller binaries only run on glibc >= the build
+    # machine's, so building on the oldest runner maximizes compatibility
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
