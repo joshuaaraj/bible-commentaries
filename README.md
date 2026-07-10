@@ -7,6 +7,38 @@ in the loaded commentary text.
 Commentary text is fetched from [BibleHub.com](https://biblehub.com). Q&A uses
 [Ollama](https://ollama.com) running locally — no cloud API, no keys.
 
+## Features
+
+**Commentary comparison**
+- Three commentaries side by side for any verse: Matthew Henry (1706–1714),
+  Gill's Exposition (1746–1766), Calvin's Commentaries (1540s–1560s)
+- All 66 books — pick a book, chapter, and verse, or step through with **← Prev / Next →**
+- Handles each source's quirks automatically: verse groupings (e.g. Matthew Henry on
+  Genesis 1:6–13), and Calvin's chapter-level commentary sliced to the section covering
+  your verse
+- Direct link to the verse on BibleHub for the full page
+
+**Ask the Commentaries (AI Q&A)**
+- Ask questions in plain English about the verse on screen — e.g. *"What are the main
+  points of Gill's commentary?"*, *"Simplify Calvin's commentary to modern English"*,
+  *"What does Matthew Henry say about creation?"*
+- Answers come **only** from the loaded commentary text — the model cites which
+  commentator says what, and replies *"This is not covered in the loaded commentary"*
+  rather than inventing an answer
+- Summarize, simplify, translate to modern English, or ask direct questions —
+  scoped to a single named commentator or all three
+- The context is always the currently displayed verse (shown as `Context: <verse>`);
+  switching verses adds a separator in the chat history
+- Runs entirely on your machine via Ollama — questions never leave your computer
+- Every question and answer is logged to `logs/queries.jsonl` for later review
+
+**App**
+- Runs three ways: standalone desktop app (Windows/Linux, no install), native window
+  from source, or plain browser tab — same features in all three
+- No accounts, no API keys, no cloud services
+- Works without Ollama: comparison is fully functional, and the Q&A panel shows
+  setup instructions until Ollama is detected (checked automatically)
+
 ## How to run
 
 There are three ways to run the app, from easiest to most hands-on.
