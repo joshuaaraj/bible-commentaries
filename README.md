@@ -39,67 +39,24 @@ Commentary text is fetched from [BibleHub.com](https://biblehub.com). Q&A uses
 - Works without Ollama: comparison is fully functional, and the Q&A panel shows
   setup instructions until Ollama is detected (checked automatically)
 
-## How to run
+## Installation on Windows
 
-There are three ways to run the app, from easiest to most hands-on.
+### 1. Install the app
 
-### Option 1 — Download the app (no install)
-
-Go to the [latest release](https://github.com/joshuaaraj/bible-commentaries/releases/latest) and download the file for your OS:
-
-**Windows** — `BibleCommentaries.exe`
-1. Double-click it. Windows SmartScreen may warn about an unrecognized app the first
+1. Go to the [latest release](https://github.com/joshuaaraj/bible-commentaries/releases/latest)
+   and download `BibleCommentaries.exe`.
+2. Double-click it. Windows SmartScreen may warn about an unrecognized app the first
    time — click **More info → Run anyway** (the exe is unsigned, not malicious).
-2. Requires Windows 10/11 (the WebView2 runtime it uses is preinstalled there).
+3. The app opens in its own window — no installer, no admin rights needed.
 
-**Linux** — `bible-commentaries-linux`
-```bash
-chmod +x bible-commentaries-linux
-./bible-commentaries-linux
-```
-Needs WebKitGTK, which most desktop distros already have
-(`sudo apt install python3-gi gir1.2-webkit2-4.1` if not).
+Requires Windows 10/11 (the WebView2 runtime it uses is preinstalled there).
 
-The app opens in its own window. Pick a book, chapter, and verse, then click **Compare**.
+### 2. Install Ollama (optional — enables the AI Q&A)
 
-### Option 2 — Run from source in your browser (Linux/Windows/macOS)
-
-Needs only Python 3.8+ — no packages to install; the server uses the standard library.
-
-```bash
-git clone https://github.com/joshuaaraj/bible-commentaries.git
-cd bible-commentaries
-python3 proxy.py
-```
-
-You'll see:
-
-```
-Bible commentary proxy running.
-Open http://localhost:8765 in your browser.
-```
-
-Open that address in any browser. Stop the server with `Ctrl+C`.
-
-### Option 3 — Run from source in a native window
-
-Same as Option 2 but opens a desktop window instead of a browser tab:
-
-```bash
-pip install -r requirements.txt     # installs pywebview
-python3 main.py
-```
-
-On Linux this needs WebKitGTK, which most desktop distros already have. If the window
-fails to open: `sudo apt install python3-gi gir1.2-webkit2-4.1`
-
-### Enable the Q&A feature (optional, all options)
-
-Comparing commentaries works out of the box. The **"Ask the Commentaries"** panel — which
-answers questions strictly from the loaded commentary text using a local AI — additionally
-needs [Ollama](https://ollama.com), a free tool that runs AI models on your own machine.
-
-#### Install Ollama on Windows
+Comparing commentaries works without this step. The **"Ask the Commentaries"** panel —
+which answers questions strictly from the loaded commentary text using a local AI —
+additionally needs [Ollama](https://ollama.com), a free tool that runs AI models on
+your own machine:
 
 1. Download the installer from
    [ollama.com/download/windows](https://ollama.com/download/windows)
@@ -112,8 +69,29 @@ needs [Ollama](https://ollama.com), a free tool that runs AI models on your own 
    ```cmd
    ollama pull llama3.2
    ```
+5. Restart the app. The Q&A panel detects Ollama automatically — nothing to configure.
 
-#### Install Ollama on Linux
+## Installation on Linux
+
+### 1. Install the app
+
+1. Go to the [latest release](https://github.com/joshuaaraj/bible-commentaries/releases/latest)
+   and download `bible-commentaries-linux`.
+2. Make it executable and run it:
+   ```bash
+   chmod +x bible-commentaries-linux
+   ./bible-commentaries-linux
+   ```
+
+Needs WebKitGTK, which most desktop distros already have
+(`sudo apt install python3-gi gir1.2-webkit2-4.1` if not).
+
+### 2. Install Ollama (optional — enables the AI Q&A)
+
+Comparing commentaries works without this step. The **"Ask the Commentaries"** panel —
+which answers questions strictly from the loaded commentary text using a local AI —
+additionally needs [Ollama](https://ollama.com), a free tool that runs AI models on
+your own machine:
 
 1. Run the official install script:
    ```bash
@@ -130,14 +108,44 @@ needs [Ollama](https://ollama.com), a free tool that runs AI models on your own 
    ```bash
    ollama pull llama3.2
    ```
+4. Restart the app. The Q&A panel detects Ollama automatically — nothing to configure.
 
-#### Connect it to the app
+## Run from source (any OS)
 
-Nothing to configure — reload the app and the Q&A panel detects Ollama automatically.
-Until then, the panel just shows these install instructions; commentary comparison
-works fine without it.
+An alternative to the downloads above. Needs only Python 3.8+ — the server uses just
+the standard library.
 
-### Using the app
+**In your browser:**
+
+```bash
+git clone https://github.com/joshuaaraj/bible-commentaries.git
+cd bible-commentaries
+python3 proxy.py
+```
+
+You'll see:
+
+```
+Bible commentary proxy running.
+Open http://localhost:8765 in your browser.
+```
+
+Open that address in any browser. Stop the server with `Ctrl+C`.
+
+**In a native window** (desktop window instead of a browser tab):
+
+```bash
+pip install -r requirements.txt     # installs pywebview
+python3 main.py
+```
+
+On Linux this needs WebKitGTK, which most desktop distros already have. If the window
+fails to open: `sudo apt install python3-gi gir1.2-webkit2-4.1`
+
+The Q&A feature works the same as the packaged app — install Ollama for your OS as
+described above.
+
+## Using the app
 
 1. Pick a **book**, **chapter**, and **verse** → click **Compare**. The three columns load
    Matthew Henry, Gill, and Calvin for that verse. Use **← Prev / Next →** to step
@@ -148,11 +156,11 @@ works fine without it.
    `Context: <verse>` above the answer area.
 3. Every question and answer is logged to `logs/queries.jsonl`.
 
-### Troubleshooting
+## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| "Could not reach the proxy server" | Start it: `python3 proxy.py` (Options 2/3) |
+| "Could not reach the proxy server" | Start it: `python3 proxy.py` (run-from-source only) |
 | Q&A panel says Ollama is not installed | Install Ollama and pull the model (see above) |
 | Q&A answers time out | The model needs ~4 GB free RAM — close other apps, or use a smaller model (`ollama pull llama3.2:1b` + set `OLLAMA_MODEL = "llama3.2:1b"` in `proxy.py`) |
 | Port 8765 already in use | Change `PORT` at the top of `proxy.py` |
