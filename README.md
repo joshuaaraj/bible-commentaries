@@ -97,19 +97,45 @@ fails to open: `sudo apt install python3-gi gir1.2-webkit2-4.1`
 
 Comparing commentaries works out of the box. The **"Ask the Commentaries"** panel — which
 answers questions strictly from the loaded commentary text using a local AI — additionally
-needs [Ollama](https://ollama.com):
+needs [Ollama](https://ollama.com), a free tool that runs AI models on your own machine.
 
-1. Install Ollama from [ollama.com/download](https://ollama.com/download)
-   (Linux one-liner: `curl -fsSL https://ollama.com/install.sh | sh`)
-2. Pull the model (~2 GB download, needs ~4 GB free RAM to run):
+#### Install Ollama on Windows
+
+1. Download the installer from
+   [ollama.com/download/windows](https://ollama.com/download/windows)
+   (direct link: [OllamaSetup.exe](https://ollama.com/download/OllamaSetup.exe)).
+2. Run `OllamaSetup.exe` and click through the installer — no options to configure.
+3. Ollama starts automatically after install and on every boot (look for the llama icon
+   in the system tray).
+4. Open **Command Prompt** (press `Win+R`, type `cmd`, press Enter) and pull the model
+   (~2 GB download, needs ~4 GB free RAM to run):
+   ```cmd
+   ollama pull llama3.2
+   ```
+
+#### Install Ollama on Linux
+
+1. Run the official install script:
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+   (On most distros this also registers Ollama as a systemd service that starts on boot.)
+2. Check it's running:
+   ```bash
+   ollama --version        # should print a version, not an error
+   ```
+   If it isn't running, start it with `ollama serve` (an "address already in use" error
+   here actually means it *is* already running — you're done).
+3. Pull the model (~2 GB download, needs ~4 GB free RAM to run):
    ```bash
    ollama pull llama3.2
    ```
-3. Make sure Ollama is running (`ollama serve` — usually it's already running as a
-   service after install; if you see "address already in use", it is).
-4. Reload the app. The Q&A panel detects Ollama automatically — no configuration needed.
 
-Without Ollama the Q&A panel simply shows install instructions; everything else works.
+#### Connect it to the app
+
+Nothing to configure — reload the app and the Q&A panel detects Ollama automatically.
+Until then, the panel just shows these install instructions; commentary comparison
+works fine without it.
 
 ### Using the app
 
