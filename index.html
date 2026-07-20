@@ -134,18 +134,20 @@
     .verse-meta a:hover { text-decoration: underline; }
 
     /* ── Commentary grid ── */
+    #results { flex: 1; }
+
+    .verse-section + .verse-section { border-top: 2px solid #c8a870; }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      flex: 1;
-      align-items: start;
+      align-items: stretch;
     }
 
     .column {
       border-right: 1px solid #ddd0b0;
       display: flex;
       flex-direction: column;
-      min-height: calc(100vh - 115px);
     }
     .column:last-child { border-right: none; }
 
@@ -153,9 +155,6 @@
       background: #ede3cf;
       border-bottom: 2px solid #c8a060;
       padding: 0.7rem 1rem;
-      position: sticky;
-      top: 96px;
-      z-index: 10;
     }
 
     .col-title {
@@ -191,6 +190,15 @@
       text-align: center;
       padding: 2.5rem 1rem;
       line-height: 1.8;
+    }
+    .placeholder.big { padding: 5rem 1rem; font-size: 1rem; }
+
+    .grouped-note {
+      color: #9a7848;
+      font-style: italic;
+      font-size: 0.82rem;
+      padding: 1.2rem 1rem;
+      text-align: center;
     }
 
     .loading {
@@ -239,8 +247,7 @@
     /* ── Responsive ── */
     @media (max-width: 860px) {
       .grid { grid-template-columns: 1fr; }
-      .column { border-right: none; border-bottom: 1px solid #ddd0b0; min-height: auto; }
-      .col-header { top: 0; position: static; }
+      .column { border-right: none; border-bottom: 1px solid #ddd0b0; }
       .verse-bar  { padding: 0.7rem 1rem; }
       .verse-text { font-size: 0.95rem; }
       .verse-meta { flex-wrap: wrap; justify-content: center; }
@@ -433,51 +440,17 @@
     <label for="vs-input">Vs.</label>
     <input id="vs-input" class="num-input" type="number" min="1" max="176" value="1">
 
+    <label for="vs2-input">to</label>
+    <input id="vs2-input" class="num-input" type="number" min="1" max="176" placeholder="–" title="End verse (optional, max 10 verses)">
+
     <button class="btn btn-primary" id="compare-btn" onclick="compare()">Compare</button>
     <button class="btn btn-nav" id="prev-btn" onclick="navigate(-1)" disabled title="Previous verse">&#8592; Prev</button>
     <button class="btn btn-nav" id="next-btn" onclick="navigate(1)"  disabled title="Next verse">Next &#8594;</button>
   </div>
 </header>
 
-<div class="verse-bar" id="verse-bar">
-  <div class="verse-text" id="verse-text"></div>
-  <div class="verse-meta">
-    <span class="ref" id="verse-ref"></span>
-    <span class="kjv-tag">KJV</span>
-    <a id="bh-link" href="#" target="_blank" rel="noopener">View on BibleHub ↗</a>
-  </div>
-</div>
-
-<div class="grid">
-  <div class="column">
-    <div class="col-header">
-      <div class="col-title">Matthew Henry</div>
-      <div class="col-subtitle">Complete Commentary · 1706–1714</div>
-    </div>
-    <div class="col-body" id="mhc-body">
-      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
-    </div>
-  </div>
-
-  <div class="column">
-    <div class="col-header">
-      <div class="col-title">Gill's Exposition</div>
-      <div class="col-subtitle">Exposition of the Entire Bible · 1746–1766</div>
-    </div>
-    <div class="col-body" id="gill-body">
-      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
-    </div>
-  </div>
-
-  <div class="column">
-    <div class="col-header">
-      <div class="col-title">Calvin's Commentaries</div>
-      <div class="col-subtitle">Commentaries · 1540s–1560s</div>
-    </div>
-    <div class="col-body" id="calvin-body">
-      <div class="placeholder">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
-    </div>
-  </div>
+<div id="results">
+  <div class="placeholder big">Select a book, chapter, and verse above,<br>then click <strong>Compare</strong>.</div>
 </div>
 
 <div id="qa-panel">
@@ -559,22 +532,33 @@ document.getElementById('ch-input').addEventListener('keydown', e => {
 document.getElementById('vs-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') compare();
 });
+document.getElementById('vs2-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') compare();
+});
 
-/* ── Navigate prev/next verse ── */
+/* ── Navigate prev/next verse (or verse range) ── */
 function navigate(delta) {
   if (!current) return;
-  let { bi, ch, vs } = current;
-  vs += delta;
+  let { bi, ch, vs, to } = current;
+  const len = (to || vs) - vs + 1;
 
-  if (vs < 1) {
-    ch -= 1;
-    if (ch < 1) { bi -= 1; if (bi < 0) return; ch = BOOKS[bi].c; }
-    vs = 176; // will show whatever exists
-  }
-  if (ch > BOOKS[bi].c) {
-    bi += 1;
-    if (bi >= BOOKS.length) return;
-    ch = 1; vs = 1;
+  if (len === 1) {
+    vs += delta;
+    if (vs < 1) {
+      ch -= 1;
+      if (ch < 1) { bi -= 1; if (bi < 0) return; ch = BOOKS[bi].c; }
+      vs = 176; // will show whatever exists
+    }
+    if (ch > BOOKS[bi].c) {
+      bi += 1;
+      if (bi >= BOOKS.length) return;
+      ch = 1; vs = 1;
+    }
+    document.getElementById('vs2-input').value = '';
+  } else {
+    /* Shift the whole range by its length, clamped within the chapter */
+    vs = delta > 0 ? to + 1 : Math.max(1, vs - len);
+    document.getElementById('vs2-input').value = vs + len - 1;
   }
 
   bookSel.value = bi;
@@ -584,15 +568,67 @@ function navigate(delta) {
 }
 
 /* ── Main compare ── */
+const MAX_RANGE = 10; // max verses per load (keeps fetches and AI context sane)
+
+const COLUMNS = [
+  { key: 'mhc',    title: 'Matthew Henry',        subtitle: 'Complete Commentary · 1706–1714' },
+  { key: 'gill',   title: "Gill's Exposition",    subtitle: 'Exposition of the Entire Bible · 1746–1766' },
+  { key: 'calvin', title: "Calvin's Commentaries", subtitle: 'Commentaries · 1540s–1560s' },
+];
+
+/* Build one verse section: verse banner + 3-column commentary grid.
+   Returns direct element references — no DOM ids. */
+function buildVerseSection(ref, bhUrl) {
+  const section = document.createElement('section');
+  section.className = 'verse-section';
+
+  const bar = document.createElement('div');
+  bar.className = 'verse-bar visible';
+  bar.innerHTML = `
+    <div class="verse-text no-text"></div>
+    <div class="verse-meta">
+      <span class="ref">${esc(ref)}</span>
+      <span class="kjv-tag">KJV</span>
+      <a href="${esc(bhUrl)}" target="_blank" rel="noopener">View on BibleHub ↗</a>
+    </div>`;
+  section.appendChild(bar);
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  const bodies = {};
+  for (const col of COLUMNS) {
+    const column = document.createElement('div');
+    column.className = 'column';
+    column.innerHTML = `
+      <div class="col-header">
+        <div class="col-title">${esc(col.title)}</div>
+        <div class="col-subtitle">${esc(col.subtitle)}</div>
+      </div>`;
+    const body = document.createElement('div');
+    body.className = 'col-body';
+    body.innerHTML = '<div class="loading"><span class="spinner"></span>Loading…</div>';
+    column.appendChild(body);
+    bodies[col.key] = body;
+    grid.appendChild(column);
+  }
+  section.appendChild(grid);
+
+  return { section, verseTextEl: bar.querySelector('.verse-text'), bodies };
+}
+
 async function compare() {
-  const bi = parseInt(bookSel.value);
-  const ch = parseInt(document.getElementById('ch-input').value);
-  const vs = parseInt(document.getElementById('vs-input').value);
+  const bi  = parseInt(bookSel.value);
+  const ch  = parseInt(document.getElementById('ch-input').value);
+  const vs  = parseInt(document.getElementById('vs-input').value);
+  let   vs2 = parseInt(document.getElementById('vs2-input').value);
 
   if (isNaN(bi) || isNaN(ch) || isNaN(vs) || ch < 1 || vs < 1) return;
+  if (isNaN(vs2) || vs2 < vs) vs2 = vs;
+  const to = Math.min(vs2, vs + MAX_RANGE - 1);
+  document.getElementById('vs2-input').value = to > vs ? to : '';
 
   const book = BOOKS[bi];
-  current = { bi, ch, vs };
+  current = { bi, ch, vs, to };
 
   const btn = document.getElementById('compare-btn');
   btn.disabled = true;
@@ -600,79 +636,100 @@ async function compare() {
   document.getElementById('prev-btn').disabled = true;
   document.getElementById('next-btn').disabled = true;
 
-  const ref    = `${book.n} ${ch}:${vs}`;
-  const bhUrl  = `https://biblehub.com/commentaries/${book.s}/${ch}-${vs}.htm`;
+  const rangeLabel = to > vs ? `${book.n} ${ch}:${vs}–${to}` : `${book.n} ${ch}:${vs}`;
+  const calvinUrl  = `https://biblehub.com/commentaries/calvin/${book.s}/${ch}.htm`;
 
-  document.getElementById('verse-ref').textContent = ref;
-  document.getElementById('bh-link').href = bhUrl;
-  document.getElementById('verse-text').classList.add('no-text'); // hidden until loaded
-  document.getElementById('verse-bar').classList.add('visible');
-
-  showLoading();
-
-  const calvinUrl = `https://biblehub.com/commentaries/calvin/${book.s}/${ch}.htm`;
+  /* Build all sections up front (each shows its own loading spinner) */
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  const sections = [];
+  for (let v = vs; v <= to; v++) {
+    const ref   = `${book.n} ${ch}:${v}`;
+    const bhUrl = `https://biblehub.com/commentaries/${book.s}/${ch}-${v}.htm`;
+    const sec   = buildVerseSection(ref, bhUrl);
+    results.appendChild(sec.section);
+    sections.push({ v, ref, bhUrl, ...sec });
+  }
 
   try {
-    // Fetch verse page (MHC + Gill) and Calvin's chapter page in parallel
-    const [verseResult, calvinResult] = await Promise.allSettled([
-      fetchViaProxy(bhUrl),
+    /* One fetch per verse page (MHC + Gill) + a single Calvin chapter fetch */
+    const settled = await Promise.allSettled([
+      ...sections.map(s => fetchViaProxy(s.bhUrl)),
       fetchViaProxy(calvinUrl),
     ]);
 
-    const verseDoc = verseResult.status === 'fulfilled'
-      ? new DOMParser().parseFromString(verseResult.value, 'text/html')
-      : null;
+    const calvinResult = settled[settled.length - 1];
     const calvinDoc = calvinResult.status === 'fulfilled'
       ? new DOMParser().parseFromString(calvinResult.value, 'text/html')
       : null;
 
-    if (!verseDoc) throw new Error(verseResult.reason?.message || 'Failed to load verse page');
+    /* Previous verse's extracted html per commentator, for group-dedup */
+    const prev = { mhc: null, gill: null, calvin: null };
 
-    // Display the verse text (KJV) from the page's #topverse div
-    const verseEl   = verseDoc.getElementById('topverse');
-    const verseText = verseEl ? verseEl.textContent.trim() : '';
-    const verseTextDiv = document.getElementById('verse-text');
-    verseTextDiv.textContent = verseText;
-    verseTextDiv.classList.toggle('no-text', !verseText);
+    sections.forEach((sec, i) => {
+      const result = settled[i];
+      if (result.status !== 'fulfilled') {
+        const msg = result.reason?.name === 'AbortError'
+          ? 'Request timed out. Please try again.'
+          : (result.reason?.message || 'Failed to load');
+        const errHtml = `
+          <div class="error-box">
+            <strong>Could not load commentary</strong><br><br>
+            ${esc(msg)}<br><br>
+            <a href="${esc(sec.bhUrl)}" target="_blank" rel="noopener">Open ${esc(sec.ref)} on BibleHub directly ↗</a>
+          </div>`;
+        Object.values(sec.bodies).forEach(b => { b.innerHTML = errHtml; });
+        return;
+      }
 
-    render('mhc-body',    extract(verseDoc, ['matthew henry', "henry's concise"]), ref, bhUrl);
-    render('gill-body',   extract(verseDoc, ["gill's exposition", 'gill']),        ref, bhUrl);
-    render('calvin-body', calvinDoc ? extractCalvin(calvinDoc, ch, vs) : null,     ref, calvinUrl);
+      const doc = new DOMParser().parseFromString(result.value, 'text/html');
 
-    // Insert verse-change separator in Q&A history if navigating away from another verse
-    if (currentRef && currentRef !== ref) {
+      /* Verse text (KJV) from the page's #topverse div */
+      const vEl   = doc.getElementById('topverse');
+      const vText = vEl ? vEl.textContent.trim() : '';
+      sec.verseTextEl.textContent = vText;
+      sec.verseTextEl.classList.toggle('no-text', !vText);
+
+      const extracted = {
+        mhc:    extract(doc, ['matthew henry', "henry's concise"]),
+        gill:   extract(doc, ["gill's exposition", 'gill']),
+        calvin: calvinDoc ? extractCalvin(calvinDoc, ch, sec.v) : null,
+      };
+
+      const stored = {};
+      for (const col of COLUMNS) {
+        const html = extracted[col.key];
+        const url  = col.key === 'calvin' ? calvinUrl : sec.bhUrl;
+        if (html && html === prev[col.key]) {
+          /* BibleHub repeats grouped commentary (e.g. MHC on Gen 1:6-13) verbatim */
+          sec.bodies[col.key].innerHTML =
+            '<div class="grouped-note">Covered above — this commentator treats these verses as a group.</div>';
+          stored[col.key] = ''; // avoid duplicating text in the AI context
+        } else {
+          render(sec.bodies[col.key], html, sec.ref, url);
+          stored[col.key] = sec.bodies[col.key].textContent.trim();
+        }
+        if (html) prev[col.key] = html;
+      }
+      sessionStore.set(sec.ref, stored);
+    });
+
+    // Insert verse-change separator in Q&A history if navigating away
+    if (currentRef && currentRef !== rangeLabel) {
       const history = document.getElementById('qa-history');
       if (history.children.length > 0) {
         const sep = document.createElement('div');
         sep.className = 'qa-separator';
-        sep.textContent = `↓  Switched to ${ref}`;
+        sep.textContent = `↓  Switched to ${rangeLabel}`;
         history.appendChild(sep);
         history.scrollTop = history.scrollHeight;
       }
     }
 
-    // Store plain-text commentary in the session store for RAG
-    currentRef = ref;
-    sessionStore.set(ref, {
-      mhc:    document.getElementById('mhc-body').textContent.trim(),
-      gill:   document.getElementById('gill-body').textContent.trim(),
-      calvin: document.getElementById('calvin-body').textContent.trim(),
-    });
+    currentRef  = rangeLabel;
+    currentRefs = sections.map(s => s.ref);
     updateSessionBadge();
 
-  } catch (err) {
-    const isAbort = err.name === 'AbortError';
-    const msg = isAbort ? 'Request timed out. Please try again.' : err.message;
-    const errHtml = `
-      <div class="error-box">
-        <strong>Could not load commentary</strong><br><br>
-        ${esc(msg)}<br><br>
-        The CORS proxy may be temporarily unavailable.
-        <a href="${esc(bhUrl)}" target="_blank" rel="noopener">Open ${esc(ref)} on BibleHub directly ↗</a>
-      </div>`;
-    ['mhc-body','gill-body','calvin-body'].forEach(id => {
-      document.getElementById(id).innerHTML = errHtml;
-    });
   } finally {
     btn.disabled = false;
     btn.textContent = 'Compare';
@@ -730,15 +787,7 @@ async function fetchViaProxy(targetUrl) {
   throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
 }
 
-function showLoading() {
-  const html = '<div class="loading"><span class="spinner"></span>Loading…</div>';
-  ['mhc-body','gill-body','calvin-body'].forEach(id => {
-    document.getElementById(id).innerHTML = html;
-  });
-}
-
-function render(id, html, ref, bhUrl) {
-  const el = document.getElementById(id);
+function render(el, html, ref, bhUrl) {
   if (html && html.trim().length > 80) {
     el.innerHTML = html;
   } else {
@@ -903,7 +952,8 @@ function esc(s) {
 
 /* ── Session store (RAG context) ── */
 const sessionStore = new Map(); // key: "Matthew 1:1", value: { mhc, gill, calvin }
-let currentRef = null;
+let currentRef  = null; // display label, e.g. "Genesis 1:1–5"
+let currentRefs = [];   // individual verse refs in the current view
 
 function updateSessionBadge() {
   const n = sessionStore.size;
@@ -926,12 +976,15 @@ function clearSession() {
 }
 
 function buildContext() {
-  if (!currentRef || !sessionStore.has(currentRef)) return '';
-  const texts = sessionStore.get(currentRef);
-  let ctx = `=== ${currentRef} ===\n`;
-  if (texts.mhc    && !texts.mhc.includes('No commentary found'))    ctx += `\n[Matthew Henry]\n${texts.mhc}\n`;
-  if (texts.gill   && !texts.gill.includes('No commentary found'))   ctx += `\n[Gill's Exposition]\n${texts.gill}\n`;
-  if (texts.calvin && !texts.calvin.includes('No commentary found')) ctx += `\n[Calvin's Commentaries]\n${texts.calvin}\n`;
+  let ctx = '';
+  for (const ref of currentRefs) {
+    const texts = sessionStore.get(ref);
+    if (!texts) continue;
+    ctx += `\n=== ${ref} ===\n`;
+    if (texts.mhc    && !texts.mhc.includes('No commentary found'))    ctx += `\n[Matthew Henry]\n${texts.mhc}\n`;
+    if (texts.gill   && !texts.gill.includes('No commentary found'))   ctx += `\n[Gill's Exposition]\n${texts.gill}\n`;
+    if (texts.calvin && !texts.calvin.includes('No commentary found')) ctx += `\n[Calvin's Commentaries]\n${texts.calvin}\n`;
+  }
   return ctx.trim();
 }
 
@@ -989,7 +1042,7 @@ async function askQuestion() {
         body: JSON.stringify({
           question,
           answer:  data.answer,
-          verses:  [currentRef],
+          verses:  currentRefs,
           context_chars: context.length,
         }),
       }).catch(() => {});
